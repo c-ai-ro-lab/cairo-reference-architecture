@@ -48,4 +48,4 @@ The director operates as architect and orchestrator: designing systems, setting 
 
 ## License
 
-Templates and code are released under the MIT License (see [LICENSE](LICENSE)). You are welcome to learn from and adapt them. The CAIRO Solutions name and brand are not included in that license.
+Copyright (c) 2026 CAIRO Solutions LLC. All rights reserved. This repository is published for viewing and evaluation only; see [LICENSE](LICENSE). For licensing or partnership inquiries, contact compliance@cairosol.com.

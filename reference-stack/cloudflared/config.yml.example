@@ -1,0 +1,20 @@
+# cloudflared ingress template (for a locally-managed tunnel).
+# Copy to config.yml on the server. The tunnel credentials JSON and cert.pem
+# are secrets: keep them in your password manager, never in this repo.
+#
+# If you run a dashboard-managed tunnel with TUNNEL_TOKEN instead
+# (as in docker-compose.yml), set these same rules in the Cloudflare dashboard.
+
+tunnel: <TUNNEL_ID>
+credentials-file: /etc/cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  # Public webhook hostname -> nginx allowlist proxy (never directly to n8n)
+  - hostname: hooks.example.com
+    service: http://nginx-webhooks:80
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: false
+
+  # Anything else that reaches this tunnel is refused
+  - service: http_status:404

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Client intake request",
+  "type": "object",
+  "required": ["first_name", "email", "message"],
+  "additionalProperties": false,
+  "properties": {
+    "first_name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "last_name":  { "type": "string", "maxLength": 80 },
+    "email":      { "type": "string", "format": "email", "maxLength": 254 },
+    "company":    { "type": "string", "maxLength": 160 },
+    "phone":      { "type": "string", "maxLength": 40 },
+    "source":     { "type": "string", "maxLength": 40 },
+    "message":    { "type": "string", "minLength": 10, "maxLength": 4000 }
+  }
+}

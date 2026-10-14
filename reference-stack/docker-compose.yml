@@ -1,0 +1,110 @@
+# CAIRO reference stack — hardened template
+#
+# Implements architecture/overview.md.
+# All secrets come from .env (copy .env.example and fill it in; never commit .env).
+#
+# Security notes:
+#   - No service publishes a port to 0.0.0.0. Docker's published ports bypass
+#     host firewalls such as ufw (see decisions/003-docker-bypasses-ufw.md).
+#   - Public traffic enters only through the outbound Cloudflare tunnel,
+#     then passes nginx's path allowlist before reaching n8n.
+#   - Admin access to n8n is through the zero-trust connector only.
+
+name: cairo-stack
+
+services:
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-latest}
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=${N8N_ADMIN_HOST}
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${WEBHOOK_PUBLIC_HOST}/
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_SECURE_COOKIE=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=true
+      - N8N_RUNNERS_ENABLED=true
+      - GENERIC_TIMEZONE=${TZ:-America/Los_Angeles}
+      - TZ=${TZ:-America/Los_Angeles}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    # No "ports:" section on purpose. If you need a local-only debug port,
+    # bind it to loopback, never to all interfaces:
+    # ports:
+    #   - "127.0.0.1:5678:5678"
+    networks:
+      - core
+      - llm
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION:-latest}
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    # No ports, and only on the internal "llm" network:
+    # reachable by n8n, unreachable from the internet and from the edge.
+    networks:
+      - llm
+
+  nginx-webhooks:
+    image: nginx:alpine
+    container_name: nginx-webhooks
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    volumes:
+      - ./nginx/webhook-allowlist.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - n8n
+    networks:
+      - edge
+      - core
+
+  cloudflared:
+    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-latest}
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - nginx-webhooks
+    networks:
+      - edge
+
+  zero-trust-connector:
+    # Twingate shown here; any identity-aware access connector fits this slot.
+    image: twingate/connector:1
+    container_name: zero-trust-connector
+    restart: unless-stopped
+    environment:
+      - TWINGATE_NETWORK=${TWINGATE_NETWORK}
+      - TWINGATE_ACCESS_TOKEN=${TWINGATE_ACCESS_TOKEN}
+      - TWINGATE_REFRESH_TOKEN=${TWINGATE_REFRESH_TOKEN}
+      - TWINGATE_LOG_LEVEL=3
+    sysctls:
+      net.ipv4.ping_group_range: "0 2147483647"
+    networks:
+      - core
+
+networks:
+  edge:
+  core:
+  llm:
+    internal: true
+
+volumes:
+  n8n_data:
+  ollama_data:

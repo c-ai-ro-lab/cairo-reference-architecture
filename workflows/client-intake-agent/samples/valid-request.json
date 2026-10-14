@@ -1,0 +1,11 @@
+{
+  "body": {
+    "first_name": "Jordan",
+    "last_name": "Example",
+    "email": "Jordan@Example-Landscaping.test",
+    "company": "Example Landscaping Co.",
+    "phone": "555-0100",
+    "source": "web_form",
+    "message": "We run 4 crews and schedule everything by text and spreadsheet. Looking to automate job intake and invoicing."
+  }
+}

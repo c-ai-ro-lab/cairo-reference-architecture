@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LLM lead qualification output",
+  "type": "object",
+  "required": ["summary", "recommended_tier", "qualification_score"],
+  "additionalProperties": false,
+  "properties": {
+    "summary": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "recommended_tier": { "enum": ["Starter", "Growth", "Enterprise", "Not a fit"] },
+    "qualification_score": { "type": "integer", "minimum": 0, "maximum": 100 }
+  }
+}
