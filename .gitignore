@@ -1,0 +1,32 @@
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+id_rsa*
+id_ed25519*
+credentials*.json
+cloudflared/*.json
+**/cert.pem
+
+# --- Runtime data ---
+.n8n/
+n8n_data/
+ollama/
+ollama_data/
+*.sqlite
+*.db
+backups/
+
+# --- Raw exports from a live instance (sanitize first, then commit the cleaned copy) ---
+*.export.json
+raw-exports/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
