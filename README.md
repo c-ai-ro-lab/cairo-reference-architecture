@@ -12,7 +12,7 @@ It is **not** a copy of any live environment. Every value that identifies real i
 
 | Folder | What it shows |
 |---|---|
-| [`architecture/`](architecture/) | How the stack is put together, how traffic is allowed in (and kept out), and how AI agents hand off work under human supervision |
+| [`architecture/`](architecture/) | How the stack is put together, how traffic is allowed in (and kept out), how AI agents hand off work under human supervision, and [current build status](architecture/build-status.md) |
 | [`reference-stack/`](reference-stack/) | A hardened Docker Compose template for a self-managed n8n + local LLM stack |
 | [`workflows/client-intake-agent/`](workflows/client-intake-agent/) | A complete, documented AI intake workflow: validation, structured LLM output, CRM write, error handling |
 | [`decisions/`](decisions/) | Architecture Decision Records: what we chose, what we rejected, and why |

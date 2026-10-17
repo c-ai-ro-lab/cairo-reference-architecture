@@ -9,6 +9,7 @@ How the [Client Intake Agent](../workflows/client-intake-agent/) addresses the f
 | Purpose | Summarize and score inbound inquiries so a person can prioritize follow-up |
 | Decision made by AI | None binding. The AI produces a recommendation; a person decides whether and how to engage. |
 | Data processed | Name, email, company, phone, free-text message submitted voluntarily by the prospect |
+| Channels | Phone voice agent and website avatar chat; both feed the same pipeline ([ADR-006](../decisions/006-website-intake-through-one-pipeline.md)) |
 | Affected parties | Prospects (could be deprioritized unfairly); the business (could miss a good lead) |
 | Model | Hosted LLM via API, temperature 0 |
 | Risk tier (internal) | Low–moderate: personal contact data, no automated adverse decision |
@@ -31,6 +32,8 @@ How the [Client Intake Agent](../workflows/client-intake-agent/) addresses the f
 | Unfair deprioritization | A low score could cause a legitimate inquiry to be ignored |
 | PII exposure | Contact details could leak through logs or an exposed admin interface |
 | Availability | LLM or CRM outage could drop leads |
+| Third-party conversation vendor | Website chat runs on an external avatar platform with its own CRM actions and an undocumented webhook payload |
+| Abuse of the public chat | Spam leads or deliberate cost inflation through the website avatar |
 
 ## MEASURE — how each risk is tested
 
@@ -40,6 +43,7 @@ How the [Client Intake Agent](../workflows/client-intake-agent/) addresses the f
 | Malformed input | Tests confirm empty and invalid payloads are rejected without crashing |
 | Infrastructure exposure | Ports verified closed from outside after every change ([ADR-003](../decisions/003-docker-bypasses-ufw.md)) |
 | Scoring drift | Periodic manual review of a sample of scored leads against the director's own judgment |
+| Vendor payload changes | Adapter is built from a captured payload and validated against the intake schema; rejected payloads are logged |
 
 ## MANAGE — controls in place
 
@@ -50,6 +54,8 @@ How the [Client Intake Agent](../workflows/client-intake-agent/) addresses the f
 | Unfair deprioritization | No lead is discarded. Low scores (< 40) and high-value leads are flagged for human review; every lead lands in the CRM. |
 | PII exposure | Admin UI behind zero-trust; webhook path allowlist; successful execution data not retained; failure logs exclude PII |
 | Availability | Retries with backoff; on CRM failure the sender still gets a 202 and the failure is logged for follow-up |
+| Third-party conversation vendor | Vendor CRM write actions disabled; leads enter only through the token-authenticated webhook and the same validation as phone intake *(being implemented)* |
+| Abuse of the public chat | Widget key restricted to the business's domains; existing input validation rejects malformed leads *(being implemented)* |
 
 ## Residual risk
 

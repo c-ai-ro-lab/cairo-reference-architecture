@@ -1,6 +1,6 @@
 # ADR-003: Never publish container ports to all interfaces; verify exposure from outside
 
-**Status:** Accepted
+**Status:** Accepted. Implemented and verified from outside, October 12, 2026.
 
 ## Context
 
