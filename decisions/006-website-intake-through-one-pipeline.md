@@ -1,6 +1,6 @@
 # ADR-006: Website avatar intake feeds the same pipeline as phone intake
 
-**Status:** Accepted (October 2026). Implementation in progress.
+**Status:** Accepted (October 2026). Access controls in place (vendor CRM writes disabled, domain-restricted widget key, token-authenticated webhook); payload adapter in progress.
 
 ## Context
 

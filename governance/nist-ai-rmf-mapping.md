@@ -54,8 +54,8 @@ How the [Client Intake Agent](../workflows/client-intake-agent/) addresses the f
 | Unfair deprioritization | No lead is discarded. Low scores (< 40) and high-value leads are flagged for human review; every lead lands in the CRM. |
 | PII exposure | Admin UI behind zero-trust; webhook path allowlist; successful execution data not retained; failure logs exclude PII |
 | Availability | Retries with backoff; on CRM failure the sender still gets a 202 and the failure is logged for follow-up |
-| Third-party conversation vendor | Vendor CRM write actions disabled; leads enter only through the token-authenticated webhook and the same validation as phone intake *(being implemented)* |
-| Abuse of the public chat | Widget key restricted to the business's domains; existing input validation rejects malformed leads *(being implemented)* |
+| Third-party conversation vendor | Vendor CRM write actions disabled; leads enter only through the token-authenticated webhook and the same validation as phone intake |
+| Abuse of the public chat | Widget key restricted to the business's domains; existing input validation rejects malformed leads |
 
 ## Residual risk
 

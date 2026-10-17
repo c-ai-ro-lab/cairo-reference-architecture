@@ -2,7 +2,7 @@
 
 Where the CAIRO operating system stands. Updated as components move from design to production. Component names are generic; see the [operating model](multi-agent-operating-model.md) for what each role does.
 
-**Last updated:** October 16, 2026
+**Last updated:** October 16, 2026 (evening)
 
 | Status | Meaning |
 |---|---|
@@ -27,7 +27,7 @@ Where the CAIRO operating system stands. Updated as components move from design 
 | Component | Status | Notes |
 |---|---|---|
 | Reception: phone intake | 🔧 In progress | Voice agent live; end-to-end test lead into the CRM pending |
-| Reception: website avatar chat | 🔧 In progress | Avatar live on the public site; post-conversation webhook into the intake pipeline being built ([ADR-006](../decisions/006-website-intake-through-one-pipeline.md)) |
+| Reception: website avatar chat | 🔧 In progress | Avatar live on the public site. Vendor CRM writes disabled, widget key restricted to the business's domains, webhook token-authenticated. Payload adapter into the intake pipeline being built ([ADR-006](../decisions/006-website-intake-through-one-pipeline.md)) |
 | Proposal & SOW: drafting | ✅ Live | Draft goes through a director review gate before any quote |
 | Proposal & SOW: quotes and payment | 🔧 In progress | Moving from CRM-native quotes to the payment processor with a client portal ([ADR-005](../decisions/005-quotes-and-payments-via-payment-processor.md)) |
 | Handoff approvals in team chat | ✅ Live | Approval cards with approve/return buttons |
