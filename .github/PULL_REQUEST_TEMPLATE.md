@@ -23,14 +23,23 @@
 ## Security, privacy, and publication review
 
 - [ ] I checked this change for credentials, tokens, private identifiers, customer data, and sensitive infrastructure details.
-- [ ] Security-sensitive findings will be reported privately per [SECURITY.md](../SECURITY.md), not disclosed in this PR.
+- [ ] Security-sensitive findings will be reported privately per [SECURITY.md](https://github.com/c-ai-ro-lab/cairo-reference-architecture/blob/main/SECURITY.md), not disclosed in this PR.
 - [ ] Claims of implementation, production status, security, and independent review are accurate and scoped.
 - [ ] Relevant build-status, architecture, governance, or decision records were updated, or no update was needed.
 - [ ] Licensing and permission for published material were considered.
 
 ## AI assistance and human accountability
 
-<!-- What AI tools assisted, if any? What suggestions were accepted, revised, or rejected? Who actually reviewed the outcome? Do not invent a manual review or independent verification. -->
+<!-- Be specific and factual. The GitHub account or commit author alone does not show which assistant contributed. If no AI was used, write "None." -->
+
+| Field | Disclosure |
+|---|---|
+| AI collaborators and roles (if any) | <!-- e.g., Claude drafted code; Perplexity supplied sourced research; ChatGPT reviewed documentation. Mention only actual contributions. --> |
+| Work performed by humans | <!-- Requirements, decisions, edits, tests, and approvals actually performed --> |
+| AI suggestions not adopted / unresolved limitations | <!-- Record material limitations or "None identified" --> |
+| Human review status | <!-- Pending / Completed, who reviewed and scope. Do not mark complete based only on an AI review. --> |
+
+<!-- See [AI Collaboration & Attribution Conventions](https://github.com/c-ai-ro-lab/cairo-reference-architecture/blob/main/docs/AI-COLLABORATION-CONVENTIONS.md). -->
 
 ## Release considerations
 
@@ -41,4 +50,4 @@
 - [ ] The change matches its intended scope and acceptance criteria.
 - [ ] I have explicitly identified any remaining uncertainties or untested areas.
 - [ ] I have checked links, paths, and examples added by this PR.
-- [ ] An authorized human has reviewed the content before merge.
+- [ ] An authorized human has reviewed the content before merge (leave unchecked until that review actually occurs).
