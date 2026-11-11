@@ -1,6 +1,6 @@
 # ADR-005: Quotes and payments through the payment processor, not the CRM
 
-**Status:** Accepted (October 2026). Supersedes the earlier choice of CRM-native quotes.
+**Status:** Accepted (October 2026). Supersedes the earlier choice of CRM-native quotes. Client portal configured October 16, 2026 (director-reported); proposal quote flow in progress and not yet verified.
 
 ## Context
 

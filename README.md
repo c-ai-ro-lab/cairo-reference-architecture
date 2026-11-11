@@ -21,10 +21,10 @@ It is **not** a copy of any live environment. Every value that identifies real i
 ## Design principles
 
 1. **Nothing is exposed by default.** Admin interfaces are reachable only through zero-trust access. The public internet sees exactly the webhook paths a workflow needs, and nothing else.
-2. **Verify, don't assume.** A firewall that *looks* closed is not the same as a port that *is* closed. Every control is tested from the outside. ([ADR-003](decisions/003-docker-bypasses-ufw.md) is the story of why.)
-3. **AI output is untrusted input.** Every LLM response is parsed against an explicit schema before it touches a system of record.
+2. **Verify, don't assume.** A firewall that *looks* closed is not the same as a port that *is* closed. Controls should be tested from the outside, not only through the tool that configures them. [Build status](architecture/build-status.md) records which checks have evidence and which do not yet. ([ADR-003](decisions/003-docker-bypasses-ufw.md) is the story of why.)
+3. **AI output is untrusted input.** LLM output should be parsed against an explicit schema before it touches a system of record, as the [intake workflow](workflows/client-intake-agent/) does.
 4. **Humans approve consequential actions.** Agents draft, score, and route. A person approves anything that commits the business or reaches a customer.
-5. **Governance is designed in, not bolted on.** Each workflow is mapped to NIST AI RMF functions and assessed with FAIR before it goes to production.
+5. **Governance is designed in, not bolted on.** Workflows are meant to be mapped to NIST AI RMF functions and assessed with FAIR before production. This repository publishes the intake workflow's mapping and a worked FAIR example.
 6. **Secrets never live in code.** Credentials sit in a password manager and are injected at runtime. This repo is scanned for secrets on every push.
 
 ## Build pipeline

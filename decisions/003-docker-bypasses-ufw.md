@@ -1,6 +1,6 @@
 # ADR-003: Never publish container ports to all interfaces; verify exposure from outside
 
-**Status:** Accepted. Implemented and verified from outside, October 12, 2026.
+**Status:** Accepted. The fix was reported implemented and checked from outside by the director on October 12, 2026. The test method and raw results are not recorded in this repository. Assurance: director-reported (see [build status](../architecture/build-status.md)).
 
 ## Context
 
@@ -17,10 +17,14 @@ Both services had been published with Docker's default binding, which is all int
 ## Decision
 
 1. **No container publishes a port to all interfaces.** Services communicate over Docker networks by container name. If a port must be published for local debugging, it is bound to loopback (`127.0.0.1:5678:5678`).
-2. **Exposure is verified from outside the server**, from a network that is not on the zero-trust connection, after every infrastructure change. A firewall's own status report does not count as verification.
+2. **Exposure must be verified from outside the server**, from a network that is not on the zero-trust connection, after infrastructure changes. A firewall's own status report does not count as verification.
 3. The zero-trust access resource for n8n was changed from the server's public IP to the container's internal name (see ADR-001).
 
-## Verification performed
+## Verification reported
+
+Reported by the director on October 12, 2026. This was a self-reported internal check, not an independent assessment. The commands, vantage point, and raw output were not captured here, so the check cannot yet be reproduced from this record. A sanitized test record should replace this section when the check is next run.
+
+Reported outcomes:
 
 - Requests to both ports on the public IP from an outside network: refused / timed out.
 - Admin UI reachable only with the zero-trust client connected.
@@ -30,4 +34,4 @@ Both services had been published with Docker's default binding, which is all int
 
 - This is a common misconfiguration because the tool that reports "protected" is not the tool that controls the traffic. Any server running Docker plus a host firewall should be checked for it.
 - It reinforced a working rule for every client build: **test controls from the attacker's position, not the administrator's.**
-- The fix cost minutes. The exposure window was the time between deployment and the review. Reviews now happen at deployment, not after.
+- The fix cost minutes. The exposure window was the time between deployment and the review. The intended practice is to review at deployment, not after; no record yet shows this happening for each change.

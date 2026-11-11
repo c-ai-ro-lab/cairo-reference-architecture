@@ -6,8 +6,11 @@ Each record captures one significant decision: the context, the options consider
 |---|---|---|
 | [001](001-zero-trust-admin-access.md) | Admin access through zero-trust, not open ports or VPN | Accepted |
 | [002](002-expose-only-webhook-paths.md) | Expose only webhook paths, through an outbound tunnel and a path allowlist | Accepted |
-| [003](003-docker-bypasses-ufw.md) | Never publish container ports to all interfaces; verify exposure from outside | Accepted |
+| [003](003-docker-bypasses-ufw.md) | Never publish container ports to all interfaces; verify exposure from outside | Accepted; director-reported |
 | [004](004-human-approval-gates-for-agents.md) | Agents propose, humans approve consequential actions | Accepted |
 | [005](005-quotes-and-payments-via-payment-processor.md) | Quotes and payments through the payment processor, not the CRM | Accepted |
-| [006](006-website-intake-through-one-pipeline.md) | Website avatar intake feeds the same pipeline as phone intake | Accepted, in progress |
+| [006](006-website-intake-through-one-pipeline.md) | Website avatar intake feeds the same pipeline as phone intake | Superseded by 008 for the public site |
 | [007](007-agent-identity-and-observability.md) | Every agent has its own identity, and every step is observable | Accepted, in progress |
+| [008](008-website-chat-with-in-conversation-tools.md) | Website chat uses a conversational widget with in-conversation tools | Accepted; live, not yet verified |
+
+Status here describes the decision and its lifecycle. Assurance (what has actually been checked) is tracked in [build status](../architecture/build-status.md).
