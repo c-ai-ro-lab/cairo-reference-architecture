@@ -43,8 +43,8 @@ No component on this page has been independently evaluated.
 
 | Component | Lifecycle | Assurance | Basis and notes |
 |---|---|---|---|
-| Website chat intake | Live | Not yet verified | Since Oct 21, 2026 the public site uses a conversational voice-and-text widget that calls the intake pipeline during the conversation ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)). Site source reviewed Nov 11, 2026: every consultation button opens the widget. No end-to-end test or access-control review recorded yet |
-| Website scheduling: availability check and 24-hour hold | Live | Not yet verified | Hold is not confirmed until the session fee is paid ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)) |
+| Website chat intake | Live | Director-reported | Since Oct 21, 2026 the public site uses a conversational voice-and-text widget that calls the intake pipeline during the conversation ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)). Since Nov 11, 2026 the widget runs a website-only agent with a reduced tool set, separate from the internal agent. Nov 11, 2026: the director ran two test conversations; Claude reviewed the transcripts and the team-chat log. Intake, availability check, and handoff to the manager worked. Incomplete and abusive inputs not yet tested; no test record published here |
+| Website scheduling: availability check and 24-hour hold | Live | Director-reported | Hold is not confirmed until the session fee is paid ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)). A server-side limit on holds was added Nov 11, 2026. In the Nov 11 test, a second hold for the same visitor was refused, no invoice was sent, and the request went to human review. Two defects found and being fixed: the handoff card mislabeled the request type, and the agent's closing wording implied a session after the refusal |
 | Phone intake | In progress | Not yet verified | The reception voice agent exists but does not answer phone calls yet |
 | Intake into the CRM, end to end | In progress | Not yet verified | No end-to-end test lead recorded |
 | Member-portal avatar | Live | Not yet verified | Moved from the public site to the member portal Oct 21, 2026 |
@@ -65,7 +65,7 @@ No component on this page has been independently evaluated.
 ## Evidence gaps to close
 
 1. A recorded external-exposure test for the infrastructure (method, vantage point, date, results), replacing the director-reported entries above.
-2. End-to-end test conversations on the website channel, including incomplete and abusive inputs.
+2. Website channel: a published test record, plus test conversations with incomplete and abusive inputs (normal-path and repeat-hold tests were run Nov 11, 2026; see above).
 3. An access-control review of the website chat and its tools, recorded once complete.
 4. An end-to-end intake test lead into the CRM.
 
