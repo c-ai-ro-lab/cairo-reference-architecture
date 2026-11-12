@@ -1,54 +1,126 @@
 # ADR-009: Version control for workflow exports and app-builder source
 
-**Status:** Proposed (November 11, 2026). Not accepted. Nothing described here is connected or deployed. This record changes no production system until the director approves it.
+**Status:** Proposed (November 11, 2026; revision 2). Not accepted. Nothing described here is connected or deployed. Accepting this ADR records an architecture direction. It does **not** authorize any connection, repository, permission, or production change. Each of those needs its own director approval (see [Decisions requiring the director's approval](#decisions-requiring-the-directors-approval)).
 
-**Drafted by:** Claude (AI), at the director's request. **Reviews pending:** ChatGPT (architecture and governance implications), Perplexity (integration security assumptions), and the director (final decision). Vendor behavior below is taken from vendor documentation as of November 11, 2026, and is listed under [Assumptions to verify](#assumptions-to-verify) where it has not yet been tested.
+**Drafted by:** Claude (AI), at the director's request. **Reviews so far:**
+- ChatGPT (AI): architecture and governance review, posted on the pull request on November 11, 2026.
+- Perplexity (AI): research report on the vendor assumptions, shared with the director.
+
+Both are AI reviews, not independent evaluations. **Final decision:** the director.
+
+## How to read this record
+
+Every factual claim carries one of four labels:
+
+| Label | Meaning |
+|---|---|
+| **[V]** | Vendor-documented behavior, with a link to the vendor's documentation as read on November 11, 2026. Not tested by CAIRO. |
+| **[O]** | Observed in CAIRO's own environment, with how it was observed |
+| **[U]** | Untested assumption. Must not be relied on until a listed test settles it |
+| **[P]** | Proposed control. Does not exist yet |
+
+Vendor behavior can change. A [V] claim is re-checked before any test that depends on it.
 
 ## Context
 
 Two production systems have no version control today:
 
-- **The workflow engine** (self-hosted n8n, Community Edition) runs the intake, scheduling, handoff, and approval workflows. Changes are made in its editor. Before risky edits, a single workflow is exported by hand as a JSON backup.
-- **The app-builder platform** (Base44) hosts the public website and the internal operations dashboard. Changes are made in its editor and go live when published.
+- **The workflow engine** (self-hosted n8n, Community Edition) runs the intake, scheduling, handoff, and approval workflows.
+- **The app-builder platform** (Base44) hosts the public website and an internal operations dashboard.
 
-The director wants both connected to GitHub so changes have history and AI collaborators can work through reviewed pull requests ([multi-agent operating model](../architecture/multi-agent-operating-model.md); rules in [ADR-004](004-human-approval-gates-for-agents.md)).
+The director wants change history for both, and wants AI collaborators to work through reviewed pull requests ([ADR-004](004-human-approval-gates-for-agents.md)).
 
-The governing requirement comes from the director: **an enforceable approval process matters more than automatic synchronization.** No change may reach production without the director's approval, and that must hold in how the tools actually behave, not only in written policy.
+**Governing requirement (director):** an enforceable approval process matters more than automatic synchronization. No production change may happen without the director's approval. Where a tool cannot technically enforce that, the record must say so, and must not describe a written policy as an enforced control.
 
-### What the vendors document
+### Current environment
+
+- **[O]** This repository is owned by a **personal GitHub account**, not an organization (repository API, November 11, 2026).
+- **[O]** AI collaborators open pull requests through that same account. Pull requests #1, #7, #8, and #9 were all opened by it, so the author and the director's approving identity are the same account.
+- **[O]** Branch protection on `main` requires one approving review and applies to administrators. Required checks are `gitleaks` and `code-nodes`.
+- **[V]** "Pull request authors cannot approve their own pull requests" ([GitHub](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews)).
+- **Consequence:** no pull request opened through the shared account can satisfy the current rule. This already blocks merges on this public repository, and the same problem would carry over to any private repository set up the same way.
+- **[O]** AI tools reach the operational systems through credentials the director provided:
+  - Base44: remote development tools, which can edit files and deploy checkpoints.
+  - n8n: an API key used by a coding assistant, which can save workflow drafts.
+  - Whether the n8n key can also publish or activate workflows is **[U]**.
+  - Today the director's approval for AI-made changes in both systems rests on conversation and policy. It is **not technically enforced**.
+- **[O]** The n8n instance distinguishes saved drafts from the published version (observed November 11, 2026, when a handoff-workflow change was saved as a draft and published separately by the director). Terms and behavior vary by n8n version **[V]** ([n8n CLI](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line.md)).
+
+### Verified vendor behavior
 
 **n8n Community Edition**
-- Git-based version control and environments are not included. They are listed as paid self-hosted Business and Enterprise features ([n8n: Community Edition features](https://docs.n8n.io/deploy/host-n8n/community-edition-features/)).
-- The command line can export workflows as one JSON file each (`n8n export:workflow --backup --output=<dir>`, where `--backup` sets `--all --pretty --separate`) and import them again (`n8n import:workflow --separate --input=<dir>`) ([n8n: CLI](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line.md)).
-- Imported workflows are deactivated by default. Exports keep their original IDs, so importing overwrites any workflow with a matching ID ([n8n: Backup and restore](https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/backup-and-restore.md)).
-- CLI exports cover workflows and credentials only. They do not include users and roles, execution history, variables, or instance settings, including the credential encryption key (same source).
+- **[V]** Git-based version control and environments are not included. They are paid self-hosted features ([n8n: Community Edition features](https://docs.n8n.io/deploy/host-n8n/community-edition-features/)).
+- **[V]** `n8n export:workflow --backup --output=<dir>` exports one JSON file per workflow (`--backup` sets `--all --pretty --separate`). `n8n import:workflow --separate --input=<dir>` imports them ([n8n: CLI](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line.md)).
+- **[V]** Imported workflows are deactivated by default. Exports keep their original IDs, so an import overwrites workflows with matching IDs. CLI exports do not include users and roles, execution history, variables, or instance settings, including the credential encryption key ([n8n: Backup and restore](https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/backup-and-restore.md)).
+- **[V]** The n8n API's workflow schema includes `staticData` (data a workflow keeps between executions) and `pinData` (pinned sample data) ([n8n API: workflow](https://docs.n8n.io/connect/n8n-api/workflow)).
+- **[U]** Whether CLI exports of CAIRO's instance include those fields is not stated in the CLI documentation and is settled by test N-T2.
 
 **Base44 GitHub sync** ([Base44: GitHub](https://docs.base44.com/developers/app-code/local-development/github.md))
-- Requires the Builder plan or higher. Each app connects to **one repository**, created at connection time. Sync works only with a default branch named `main`.
-- **Outbound:** editor changes, and restores from version history, are pushed as commits **directly to `main`**. Sync cannot be paused; an app is either connected or disconnected.
-- **Inbound:** changes reach Base44 when they are merged into `main`. After a merge:
-  - backend functions deploy to preview and need **Publish** to reach production;
-  - **entity schemas update in preview and production, with no publish step;**
-  - **agents update in preview and production, with no publish step.**
-- An API setting turns off *automatic* inbound sync. New commits are then pulled when someone opens the app in the editor or calls the pull endpoint. It does not affect outbound pushes ([Base44 API: toggle sync](https://docs.base44.com/api-reference/turn-automatic-github-sync-on-or-off.md)).
-- The workspace chooses a shared connection (commits authored as Base44) or per-user connections (commits under each member's GitHub identity).
-- Versions created before connecting cannot be restored after connecting. Reconnecting is limited (not possible if both sides have new commits, among other cases).
+- **[V]** Requires the Builder plan or higher. One repository per app, created at connection time. Sync works only with a default branch named `main`.
+- **[V]** Editor saves and version-history restores are pushed as commits **directly to `main`**. There is no manual outbound push. Sync cannot be paused, only connected or disconnected.
+- **[V]** After a merge into `main`:
+  - backend functions deploy to preview and need **Publish** for production;
+  - **entity schemas update in preview and production with no Publish step;**
+  - **agents update in preview and production with no Publish step.**
+- **[V]** The documentation's general instruction is "After syncing, click Publish … to make the changes live for users." Its per-resource table does not cover frontend code, so frontend behavior after a merge is **[U]**.
+- **[V]** CLI deploy commands (`base44 deploy`, `functions deploy`, `entities push`, `agents push`) "bypass the remote repository," and the next sync "overwrites any changes the repository doesn't contain."
+- **[V]** `base44 dev --remote` runs a local frontend against the live backend: "writes go to your live app's production data."
+- **[V]** A toggle turns off automatic *inbound* sync. Commits are then pulled when someone opens the app in the editor or calls the pull endpoint. It "doesn't affect the other direction" ([Base44 API: toggle sync](https://docs.base44.com/api-reference/turn-automatic-github-sync-on-or-off.md)).
+- **[V]** Connection modes:
+  - The default **shared connection** commits as Base44, so GitHub cannot tell which person made a change.
+  - **Per-user connections** use each member's GitHub identity, and "members without write access to the repository can't edit or publish the app."
+- **[V]** Recovery limits:
+  - Versions from before the connection cannot be restored afterward.
+  - Disconnecting takes about 30 seconds and is unavailable while Base44's AI agent is making changes.
+  - Reconnecting fails if both sides have new commits, if the repository was renamed, deleted, or had its default branch changed, or if the app moved workspaces.
+  - Disconnecting an organization stops sync but **leaves the Base44 GitHub App installed**.
+- **[V]** Project files ([Base44: Project structure](https://docs.base44.com/developers/backend/overview/project-structure.md)):
+  - include entity *schemas*, backend functions, agent configurations, agent skills, auth settings, and connector configurations;
+  - do **not** include data records, end-user accounts, published state, or agent conversation history.
 
-**GitHub** ([GitHub: About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches))
-- Protected branches on **private** repositories require GitHub Pro, Team, or Enterprise. They are not listed for GitHub Free.
-- Push restrictions can allow named users, teams, or installed GitHub Apps to push to a protected branch. Bypass lists are available only for organization-owned repositories.
-- Administrators bypass protection unless "Do not allow bypassing the above settings" is enabled.
+**GitHub**
+- **[V]** Protected branches on private repositories require GitHub Pro (personal accounts) or Team or Enterprise (organizations) ([GitHub: About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)).
+- **[V]** Administrators bypass protection unless it is set to apply to them. Bypass lists are available only for organization-owned repositories (same source).
+- **[V]** Optional protections include required review from code owners, and requiring that the most recent push be approved by someone other than the person who pushed it (same source).
+- **[V]** GitHub-native secret scanning on private repositories requires a paid GitHub Advanced Security product ([GitHub Advanced Security](https://docs.github.com/en/get-started/learning-about-github/about-github-advanced-security)). Without it, a pre-commit and CI secret scan (gitleaks) is the **primary** control.
+- **[V]** A person may hold one free machine account in addition to their personal account. The account owner is responsible for the machine account's actions ([GitHub Terms of Service](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)).
 
-## Requirement analysis: can Base44 two-way sync coexist with mandatory approval?
+## Enforcement boundary
 
-**Not fully. The two requirements conflict, and the conflict cannot be configured away in GitHub.**
+GitHub review can gate only changes that travel through a GitHub merge. Every other path to production is governed by the tool it runs in.
 
-1. **Base44 must push to `main` without review.** It writes directly to `main` and cannot be paused. If `main` requires an approved pull request, Base44's pushes are rejected unless the Base44 GitHub App (or, with per-user connections, each member) is allowed to bypass. What Base44 does when a push is rejected is not documented and must be tested.
-2. **A bypass makes `main` unreliable as an approval record.** Any commit that arrives through the bypassing identity skips review. With a shared connection, that includes every workspace member's editor change and every change made by Base44's built-in AI, attributed to Base44 rather than to a person. GitHub can no longer show that everything on `main` was approved.
-3. **A merge into `main` is a production change.** For entities and agents, approving a pull request is approving a production deployment, with no separate publish gate. A pull request that looks like "just code" can change a live data schema or a live agent.
-4. **GitHub was never the approval gate for editor changes.** Changes made in the Base44 editor follow Base44's own controls: who has edit rights, and who can publish. Connecting GitHub adds a second path into production (merge to `main`). It does not put a gate in front of the first path.
+| Change path | What enforces approval today | Status |
+|---|---|---|
+| (a) Merge into a GitHub `main` that a system syncs from | Branch protection, *if* author and approver are different identities | **Not enforceable today**: shared account [O]. Enforceable only after identity separation [P] |
+| (b) Base44 editor edits, Publish, and AI-agent edits | Base44 workspace roles. The director operates Publish | **Director-operated, not technically enforced** against tools holding the director's credentials [O] |
+| (c) Direct operations outside the repository: Base44 CLI deploy and push, `base44 dev --remote`, Base44 remote-development tools | Whoever holds the credential | **Policy only** [O] |
+| (d) n8n editor, API, and CLI: save, publish or activate, import, credentials, settings | n8n user accounts and API keys | **Policy only** for AI-initiated changes [O]; API publish rights **[U]** |
+| (e) Server and container configuration, tunnel, proxy, zero-trust access | Zero-trust admin access ([ADR-001](001-zero-trust-admin-access.md)) | Access-controlled; change approval is policy only |
 
-**Conclusion:** if the operational apps are connected now, either `main` is protected and Base44 sync may break, or Base44 is given a bypass and GitHub no longer enforces approval. **A bypass that lets unreviewed commits reach `main`, combined with merges that update production entities and agents, undermines mandatory human approval.** This ADR therefore recommends **deferring the connection of any operational Base44 app** until the disposable-app tests below show a configuration in which every path to production passes a director approval.
+**Consequence:** connecting GitHub cannot by itself make "no production change without approval" true, because paths (b) through (e) never pass through GitHub. This ADR improves path (a) and adds detection (version history) for the others. Preventive control for (b) through (e) is a separate decision about credentials and roles (decisions D3 and D4 below).
+
+## Approval identity architecture
+
+The approval rule has to rest on two different GitHub identities: the one that authors changes and the one that approves them.
+
+| # | Option | Enforcement | Assessment |
+|---|---|---|---|
+| AA1 | **Separate author identity**: AI collaborators work through one machine account; the director's personal account is the only approver | [P] Required review + `CODEOWNERS` naming the director + required code-owner review + last-push approval + rules applied to admins. Then a pull request merges only with the director's approval, and a push after approval resets it | **Recommended for testing.** Allowed by GitHub's terms (one free machine account) [V]. AI tools share the machine account, so attribution between them relies on branch prefixes and commit trailers, not GitHub identity. Code-owner enforcement on a *private* personal repository is plan-dependent [U] (test I-T4) |
+| AA2 | Per-tool GitHub App identities (each AI tool authors as its own app) | Same as AA1, with stronger attribution | Depends on each AI vendor offering an app that authors pull requests as itself. **[U]**, not assumed |
+| AA3 | Move repositories to a GitHub organization, with AA1 or AA2 inside it | Adds teams, bypass lists, and central access review [V] | Private-repo protection needs the Team plan [V]. Worth it when more people join. Not required for AA1 |
+| AA4 | Keep one shared account; the director's own merge is the approval, recorded out of band | **Weak.** Any tool holding the account's credentials can merge too. Not technically enforced | Acceptable only if described as "director-operated, not enforced." Not recommended for any repository that syncs into production |
+
+Under AA1, the director cannot approve pull requests he authors himself. Changes the director writes go through an AI-authored pull request, or through a documented, time-limited relaxation of protection that he records afterward. **[P]**
+
+Credential custody under AA1 **[P]**:
+- The director holds the machine account's login and recovery factors in the password manager.
+- AI tools receive only fine-grained tokens limited to named repositories, with contents and pull-request write and no admin rights. The tokens expire and are rotated on a schedule.
+- The machine account is never a repository administrator.
+
+**Approval records (ADR-004 consistency) [P].** Every AI-initiated production change has an attributable approval record made *before* it takes effect:
+- **Repository paths:** the director's GitHub review (AA1).
+- **Paths (b) through (e):** an approval in the existing team-chat approval flow ([ADR-004](004-human-approval-gates-for-agents.md), [ADR-007](007-agent-identity-and-observability.md)), naming the change, its test evidence, and its rollback.
+- A pull request opened through the shared account is not, by itself, an approval record.
 
 ## Options considered
 
@@ -56,165 +128,279 @@ The governing requirement comes from the director: **an enforceable approval pro
 
 | # | Option | Assessment |
 |---|---|---|
-| N1 | **Manual one-way export to a private repository** after sanitization and validation | Recommended first step. The repository is never read by n8n, so nothing in it can change production. |
-| N2 | Scheduled automated export (a workflow or cron job that commits) | Deferred until N1 has run cleanly. Adds a credential that can write to GitHub and removes the human review of each export. |
-| N3 | Upgrade to a paid n8n plan with built-in Git environments | Not evaluated for cost. Would make Git a deployment path, which brings the same approval questions as Base44. |
-| N4 | Third-party GitOps tools that import from Git into n8n | Rejected for now. Makes the repository a path into production and adds an unreviewed dependency. |
+| N1 | **Manual one-way export to a private repository**, sanitized and validated | Recommended. n8n never reads the repository, so commits there change nothing in production |
+| N2 | Scheduled automated export | Deferred until N1 has run cleanly (criteria below) |
+| N3 | Paid n8n plan with Git environments | Not evaluated for cost. Would turn Git into a deployment path, with the same identity questions as Base44 |
+| N4 | Third-party tools that import from Git into n8n | Rejected for now. Creates a repository-to-production path |
 
 ### App-builder platform (Base44)
 
 | # | Option | Assessment |
 |---|---|---|
-| B1 | **Do not connect operational apps yet.** Test two-way sync on a disposable, non-production app. | Recommended. No production exposure while behavior is unknown. |
-| B2 | Connect, protect `main` with required director approval, **no bypass** | Only acceptable if tests show Base44 behaves safely when its pushes are rejected. Expected to break or stall sync. |
-| B3 | Connect, grant the Base44 app a bypass | **Rejected.** Unreviewed commits on `main`; GitHub stops enforcing approval. |
-| B4 | Connect with `main` unprotected, relying on Base44 access control | **Rejected.** Anyone with repository write access, including AI collaborators, could merge a change that updates production entities or agents. |
-| B5 | One-way source snapshot: periodically copy app source from Base44 into a private repository, with no sync connection | Candidate alternative if B1 tests fail. Gives history and review of what changed, while production changes stay behind Base44's Publish and edit permissions. Does not let pull requests change the app. |
+| B1 | Test two-way sync on a **disposable app and repository**; connect no operational app | Required before B2 can even be considered |
+| B2 | Connect an operational app; protect `main` with director approval under AA1; **no bypass** | **Conditional.** Only if the tests show Base44 behaves safely and visibly when its pushes are rejected, *and* an inbound-only configuration is shown to be workable. Not rejected in principle, but unproven |
+| B3 | Connect and give Base44 (or members) a bypass of the review rule | **Rejected.** Unreviewed commits on `main`, and merges that change production entities and agents. A push permission is not the same as a review exemption, and neither may be used to skip director approval |
+| B4 | Connect with `main` unprotected | **Rejected.** Any repository writer could merge a change that updates production entities or agents |
+| B5 | **One-way source snapshot** of operational apps into a private repository, with no sync connection | **Preferred candidate for operational apps** (details below) |
+| B6 | Non-production clone app connected to GitHub, with manual promotion to the production app by the director | Viable but costly: a second app, duplicate configuration, and data separation. Promotion still happens in the Base44 editor and Publish, so the preventive gate is the same as B5. Revisit if pull-request-based development on the app becomes necessary |
+| B7 | No version control (status quo) | No history, no detection of unreviewed changes |
+
+### B5 in detail: one-way source snapshot
+
+- **What it adds:** reviewable history and diffs of the app's source, with **no** path from the repository into production.
+- **What it is not:** a preventive control. A snapshot shows *after the fact* what changed in the editor. It does not stop an unapproved editor change. Preventive control of editor changes depends on who holds Base44 edit and Publish rights (decision D3).
+- **Capture method [U]:** candidates are a read-only file export through Base44's remote-development tools, run by a director-authorized tool, or a vendor export feature if one exists. Either must be read-only against the app. The method is chosen by the director (D6) after test B5-T1.
+- **Coverage [V] from the project structure:**
+  - **Captured:** entity schemas, backend functions, agent configurations and skills, auth settings, connector configurations.
+  - **Captured if the export includes it [U]:** frontend source.
+  - **Never captured:** data records, end-user accounts, published state, agent conversation history, secrets and OAuth tokens. The local app-link file is excluded.
+- **Sanitization [P]:**
+  - secret scan (gitleaks) and personal-information review, as for n8n exports;
+  - connector configurations reviewed for embedded identifiers before commit.
+- **Frequency [P]:** before and after every Publish of an operational app, plus a scheduled weekly snapshot to catch editor changes made without a Publish. Each snapshot is a pull request the director reviews.
+- **Reconstruction limits:**
+  - A snapshot cannot be pushed back into Base44 without a production write path (CLI deploy, the editor, or a sync connection).
+  - Reconstruction is therefore a manual, director-approved production change.
+  - It is tested only against a disposable app (B5-T3).
 
 ## Decision (proposed)
 
 ### 1. Repository strategy
 
-- **Private repositories** hold application source and workflow exports. `cairo-reference-architecture` stays **public and sanitized** and receives only hand-written, reviewed summaries, never exports or synced source.
-- **Workflow exports:** one private repository for the workflow engine's exports.
-- **Base44:** the platform's model is **one repository per app**, created by Base44, syncing on `main`. It does not provide one repository per deployment environment. Preview and production are stages inside the same app, not separate branches or repositories. The [README](../README.md)'s "private repo per environment" wording should be amended to "per app or per workflow instance" if this ADR is accepted.
-- Repositories are owned by the organization, not a personal account, so access can be managed centrally and bypass lists are available.
-- Each GitHub App (Base44, AI collaborators) is installed on **selected repositories only**, never on all repositories.
+- **[P]** Application source snapshots and workflow exports go into **private** repositories. `cairo-reference-architecture` stays **public and sanitized**, with hand-written, reviewed summaries only.
+- **[P]** One private repository for n8n workflow exports. One private repository per Base44 app for B5 snapshots, matching Base44's one-repository-per-app model [V]. Preview and production are stages inside a Base44 app, not separate branches or repositories. If this ADR is accepted, the [README](../README.md)'s "private repo per environment" wording becomes "per app or per workflow instance."
+- **[P]** Ownership: the personal account for now, with AA1. Moving to an organization (AA3) is a separate decision (D1).
+- **[P]** Plan prerequisite: branch protection on private repositories needs GitHub Pro on a personal account [V]. Without it, the private repositories hold history only and **no review rule is enforced there**.
+- **[P]** Each GitHub App is installed on selected repositories only.
 
 ### 2. Workflow exports (n8n): controlled, one-way, manual first
 
-The repository is a **version history of workflow definitions**. n8n never reads from it. Nothing committed there changes production.
+The repository holds **definition history**. It is not a state-preserving backup and not disaster recovery.
 
-**Manual export cycle**, run by the director (or by an AI collaborator under supervision, with the director approving the commit):
+**Manual export cycle [P]:**
 
-1. **Export** all workflows with the CLI inside the n8n container to a working directory on the host. The working directory is outside any Git checkout and is deleted after the cycle.
+1. **Export** with the CLI inside the n8n container to a working directory on the host, outside any Git checkout. The directory is deleted after the cycle.
 2. **Sanitize** each file:
-   - **Pinned data** (`pinData`): remove. It is test or production input saved in the editor and can hold personal information.
-   - **Workflow static data** (`staticData`): remove. Workflows can keep records between runs (for example, rate-limit or deduplication records) that may contain personal information.
-   - **Hard-coded values in nodes:** search Code, HTTP Request, Set, and sticky-note content for emails, phone numbers, tokens, keys, and passwords. A secret found here is not redacted and committed: the workflow is fixed to use a stored credential, and the secret is rotated.
-   - **Credential metadata:** nodes reference credentials by ID and name. These are not secrets and are kept, because restoration needs them, but they reveal which services are connected. This is one reason the repository is private.
-   - **Webhook paths and IDs:** kept, because restoration needs them. They are not secrets, but they identify public entry points. Every webhook must still enforce its own authentication; a private path is not a control. If the repository is ever exposed, webhook paths are treated as disclosed and reviewed.
-3. **Validate** before committing:
-   - every file parses as JSON, and the file count matches the number of workflows in the instance;
+   - **`pinData`**: remove. It is saved input and can hold personal information.
+   - **`staticData`**: remove, because it can hold personal information. Some workflows rely on it for deduplication, cursors, or rate limits, so a workflow restored without it can behave differently at first. Each such workflow is listed in the repository with how it behaves without its stored data.
+   - **Free-text and parameter fields**: Code nodes, HTTP request bodies and headers, Set values, agent prompts, and sticky notes are **manually reviewed** for personal information and secrets. Pattern scans for emails and phone numbers plus gitleaks are necessary but **not sufficient**.
+   - **Hard-coded secrets**: never redacted and committed. The workflow is changed to use a stored credential, and the secret is rotated.
+   - **Credential references** (ID and name): kept, because restore needs them. Not secrets, but they reveal connected services.
+   - **Webhook paths**: kept, because restore needs them. Once committed, **access control on the private repository is the only thing keeping them from a reader**. Every webhook must therefore enforce its own authentication, and that is confirmed for each exported workflow before the first commit (reported privately, per [SECURITY.md](../SECURITY.md), if any gap is found).
+3. **Validate**:
+   - the file count matches the instance;
+   - every file parses as JSON;
    - no file contains a non-empty `pinData` or `staticData`;
-   - a secret scan (for example gitleaks, already used on the public repository) passes;
-   - a personal-information pattern search (emails, phone numbers) returns only expected business addresses;
+   - gitleaks passes;
+   - the pattern scan returns only expected business addresses;
+   - the manual field review is signed off;
    - the director reviews the diff against the previous export.
-4. **Commit** to a branch and open a pull request. The director approves the merge. A merge here is a version-control action only.
+4. **Commit** to a branch, open a pull request, and the director approves (AA1). This is version control only.
 
-**Never committed:** credential exports of any kind (`export:credentials`), especially `--decrypted` exports, which are plain text; the instance's `.n8n` folder, database, or encryption key; execution data; environment files.
+**Never committed:** credential exports of any kind (above all `--decrypted`, which is plain text), the `.n8n` folder, the database, the encryption key, execution data, or environment files.
 
-**Scheduled automation** is considered only after at least three consecutive manual cycles with no sanitization findings. It must:
-- run the same sanitization and validation and **fail closed**, committing nothing if any check fails;
-- push to a branch and open a pull request, never push to `main`;
-- authenticate with a credential limited to that one repository, stored in the password manager, rotated on a schedule.
+**Scheduled export (N2)** requires all of the following:
+- director approval (D7);
+- at least three consecutive clean manual cycles;
+- the same checks, failing closed;
+- output to a branch with a pull request, never to `main`;
+- a single-repository credential held in the password manager.
 
-**Restoration from the repository** is a production change and needs director approval:
-1. Export the current state first, so the restore can be undone.
-2. Import into a **non-production** n8n instance first and check that it loads.
-3. Only then import into production. Imports overwrite workflows with matching IDs and arrive **deactivated**, so importing over a live workflow can take it offline until it is reactivated.
-4. Re-link credentials if needed. Static data, pinned test data, and execution history are not restored, because they were never exported.
-5. The director activates the workflow.
+The manual field review cannot be automated away, so a scheduled export still needs a human review of each pull request.
 
-**Version control is not disaster recovery.** The repository can restore workflow *definitions* onto a working n8n instance. It cannot rebuild the instance. A complete recovery also needs the database, the `.n8n` folder including the credential encryption key, credentials, users, variables, execution history if wanted, and the deployment configuration (container definitions, tunnel, proxy allowlist, and zero-trust access). That backup is separate, encrypted, stored off the host, and **never in GitHub**. Its design and a tested restore are a separate gap, recorded in [build status](../architecture/build-status.md) when this ADR is accepted.
+**Restore to production** is a production change and needs director approval (D9):
+1. Export the current state first.
+2. Import into a **non-production** instance and check it.
+3. Import into production. Matching IDs are overwritten and the imported workflow arrives **deactivated**, so a live workflow can go offline.
+4. Check webhook path conflicts. Activation fails if another active workflow already uses the same path.
+5. Re-link credentials.
+6. Expect any workflow that depended on its stored data to start fresh.
+7. The director publishes or activates.
 
-### 3. App-builder platform (Base44): test before connecting anything operational
+**Not disaster recovery.** Recovering the instance needs a separate, encrypted, off-host backup, never in GitHub, of:
+- the database;
+- the `.n8n` folder, including the encryption key;
+- credentials, users, and variables;
+- execution history if wanted;
+- deployment configuration: containers, tunnel, proxy allowlist, zero-trust access.
 
-- **No operational app is connected** (not the public website, not the operations dashboard) until the director accepts a configuration based on the test results below.
-- Testing uses a **disposable app** created for the purpose, with no real data, connected to a **disposable private repository**. Both are deleted after testing.
-- If no tested configuration keeps every path to production behind director approval, the recommendation becomes **B5** (one-way snapshot) or no connection.
+That backup and a tested restore are an open gap (D10).
 
-### 4. Which actions change production
+### 3. Base44
 
-| Action | System | Effect |
-|---|---|---|
-| Export workflows; commit, open PR, or merge in the exports repository | n8n + GitHub | **Version control only** |
-| Import a workflow into the production instance | n8n | **Production change** (overwrites by ID, deactivates the imported workflow) |
-| Activate or deactivate a workflow | n8n | **Production change** |
-| Save a change in the Base44 editor (connected app) | Base44 | Changes preview; pushes a commit to `main`. Production effect depends on resource type and Publish (to verify) |
-| Merge into `main` (connected app): entity schema or agent change | Base44 + GitHub | **Production change, immediate, no publish step** |
-| Merge into `main` (connected app): backend function change | Base44 + GitHub | Preview only, until Publish |
-| Publish in Base44 | Base44 | **Production change** |
-| Restore a version in Base44 (connected app) | Base44 | Pushes a commit to `main`; production effect as above |
-| Revert a merged change in GitHub (connected app) | Base44 + GitHub | **Production change** (a new merge to `main`) |
-| Connect or disconnect an app, change sync settings | Base44 | **Configuration change**, director only |
-| Change repository access, branch protection, or bypass lists | GitHub | **Control change**, director only |
-| Merge into `cairo-reference-architecture` | GitHub | **Public publication** (no production effect, but public disclosure) |
+- **No operational app is connected** to GitHub sync until the director accepts a configuration on the strength of the disposable-app tests.
+- For operational apps, **B5 is the preferred candidate.** It is adopted only after tests B5-T1 to B5-T3 and the director's choice of method (D6).
+- B2 is reconsidered only if the B1 tests meet the acceptance criteria below.
+
+### 4. Production-impact matrix
+
+| Action | System | Production effect | Technical gate today | Required approval [P] |
+|---|---|---|---|---|
+| Export, commit, open PR, or merge in the n8n-exports repository | GitHub | **None.** Version control only | Branch protection, after AA1 | Director review of the PR |
+| Save a workflow in the n8n editor or through the API | n8n | Draft only, on this instance's version [O] | n8n accounts and API keys | Policy: director approves AI-initiated edits |
+| Publish, activate, or deactivate a workflow | n8n | **Production change** | n8n accounts; API key rights **[U]** | Director, with an approval record |
+| Import a workflow into production | n8n | **Production change.** Overwrites by ID; deactivates | Host access | Director (D9) |
+| Change credentials, settings, or webhook authentication | n8n | **Production change** | n8n accounts | Director |
+| Change containers, tunnel, proxy, or zero-trust policy | Server | **Production change** | Zero-trust admin access | Director |
+| Edit a backend function in the Base44 editor | Base44 | Preview until Publish **[U]** (test E-T3) | Base44 roles | Director publishes |
+| Edit an entity schema or agent in the Base44 editor | Base44 | **May reach production without Publish [U]** (tests E-T1, E-T2) | Base44 roles | Director, before the edit |
+| Edit frontend code in the Base44 editor | Base44 | Production on Publish **[U]** (test E-T4) | Base44 roles | Director publishes |
+| Publish | Base44 | **Production change** | Base44 roles | Director |
+| Base44 AI agent edits in the editor | Base44 | As for the resource edited | Base44 roles | Director, before the edit |
+| Base44 CLI deploy or push commands | Base44 | **Production change**, outside the repository; overwritten by the next sync if connected [V] | Credential holder | Director; prohibited for AI tools unless approved per change |
+| `base44 dev --remote` | Base44 | **Writes live production data** [V] | Credential holder | Director; prohibited against operational apps unless approved |
+| Base44 remote-development tools (file edits, checkpoint deploy) | Base44 | Checkpoint deploy is a **production change** [O] | Credential holder | Director, per change |
+| *If connected:* editor save | Base44 + GitHub | As above, plus an unreviewed commit to `main` [V] | None on the GitHub side | Not acceptable without the B2 test results |
+| *If connected:* merge to `main` changing entities or agents | Base44 + GitHub | **Production change, immediate, no Publish** [V] | Branch protection (AA1) | Director review, treated as a production deployment |
+| *If connected:* merge to `main` changing functions | Base44 + GitHub | Preview until Publish [V] | Branch protection (AA1) | Director review, plus Publish |
+| *If connected:* merge with automatic inbound sync off | Base44 + GitHub | Takes effect **later**, when someone opens the editor or pulls [V] | None at the moment of effect | Director; the effect time must be recorded |
+| *If connected:* mixed-resource PR | Base44 + GitHub | Highest-risk effect of any file in it | Branch protection (AA1) | Treated as a production deployment |
+| *If connected:* GitHub revert of a merged change | Base44 + GitHub | **Production change** (a new merge) | Branch protection (AA1) | Director |
+| Connect, disconnect, change sync mode or the inbound toggle | Base44 | **Configuration change** | App owner | Director only |
+| Change repository access, protection, CODEOWNERS, tokens, app installs | GitHub | **Control change** | Repository admin | Director only |
+| Merge into `cairo-reference-architecture` | GitHub | Public disclosure; no production effect | Branch protection (deadlocked today [O]) | Director |
 
 ## Security risks
 
-| Risk | Mitigation |
+| Risk | Mitigation [P] |
 |---|---|
-| Personal information in exports (pinned data, static data, hard-coded test values) | Strip and validate before every commit; private repository; personal-information search |
-| Secrets committed by mistake | Secret scan before commit and in CI; secrets live only in credential stores; rotate on any finding. GitHub's built-in secret scanning for private repositories may need a paid add-on, so do not rely on it alone |
-| Repository exposure reveals webhook paths, connected services, and prompts | Private repository; minimal collaborators; two-factor authentication required; forking of private repositories disabled; webhooks keep their own authentication |
-| Merge to `main` silently changes production entities or agents (Base44) | Defer operational connection; if ever connected, reviewers treat every merge as a production deployment |
-| A bypass identity commits unreviewed changes to `main` | Bypass rejected (option B3) |
-| Third-party GitHub Apps with broad repository access | Install on selected repositories only; review installed apps and their permissions when access changes |
-| AI collaborators with write access merging their own work | Branch protection with required director approval and admin enforcement; AI branches limited to their prefixes (`claude/`, `chatgpt/`) |
-| Branch protection unavailable on the organization's plan for private repositories | Check the plan before creating private repositories; without protection, no repository may be a path into production |
-| Restore overwrites a live workflow | Export first; restore to non-production first; director approves and activates |
+| Same account authors and approves, so the review rule is unenforceable or deadlocked | AA1 identity separation; tested on a disposable private repository first |
+| AI tools hold the director's credentials for Base44 and n8n | Decision D3/D4: separate, least-privilege credentials per tool where the vendor supports it; otherwise record these paths as policy-only |
+| Personal information in exports | Strip `pinData` and `staticData`; manual field review; synthetic data in all tests |
+| Secrets committed | gitleaks before commit and in CI as the primary control (no native private-repo scanning without a paid product [V]); rotate on any finding |
+| Repository exposure reveals webhook paths, connected services, prompts | Private repositories; two-factor authentication; minimal access; webhooks keep their own authentication |
+| A merge silently changes production entities or agents | No operational connection; any connected repository treats merges as production deployments |
+| Bypass identities | Rejected (B3) |
+| Base44 GitHub App left installed after disconnect | Teardown includes uninstalling the app on GitHub [V] |
+| Emergency stop unavailable during Base44 AI edits | Avoid AI edits on connected apps; disconnection steps rehearsed in tests |
+| Plan without private-repo protection | Check the plan first (D2); without protection, private repositories are history only and must not feed production |
 
 ## Rollback and recovery limitations
 
-- **Base44 entity schemas:** reverting a schema change in Git applies a new schema. It does not bring back data that was dropped or altered by the original change.
-- **Base44 history:** versions from before the connection cannot be restored after connecting. Reconnecting after a disconnect is not always possible. Sync cannot be paused, only disconnected.
-- **Base44 conflicts:** Base44 does not resolve conflicts automatically. Its AI conflict resolution is itself an unreviewed change.
-- **Workflow exports** are point-in-time definitions. They do not restore credentials, static data, execution history, users, or variables, and an import deactivates the restored workflow.
-- **A GitHub revert is not an undo.** It is a new change that goes through the same paths to production.
+- **Base44 entity schemas:** reverting applies a new schema. It does not restore records that were dropped or altered.
+- **Base44 connection:** pre-connection versions become unrestorable; reconnection can fail; sync cannot be paused; disconnection is blocked while the AI agent edits; AI conflict resolution is itself an unreviewed change. [V]
+- **B5 snapshots:** cannot be applied back without a production write path.
+- **n8n exports:** definitions only. They do not restore credentials, stored workflow data, execution history, users, or variables. An import deactivates the workflow and can collide on webhook paths.
+- **A GitHub revert is not an undo.** It is a new change through the same paths.
 
 ## Test procedures
 
-### Workflow exports (n8n), in a dry run before the first real commit
+Each test records:
+- date, operator, configuration, and the observed result;
+- the evidence location;
+- whether the result matched expectations.
 
-1. Run the export into a scratch directory; confirm one file per workflow and the count matches the instance.
-2. Insert a known fake email into a test workflow's pinned data; confirm sanitization removes it and validation then passes.
-3. Insert a known fake token into a test Code node; confirm the secret scan fails the cycle.
-4. Import the sanitized set into a **non-production** instance; confirm the workflows load, arrive deactivated, and show which credentials need re-linking.
-5. Record method, date, operator, and results in [build status](../architecture/build-status.md) (lifecycle and assurance stay separate).
+A test not run is reported as not run. All tests use **synthetic data**. **Nothing is added to production workflows or production apps for testing.**
 
-### Base44 two-way sync, on a disposable app and repository only
+### Identity tests (disposable private repository, no Base44 and no n8n)
 
-| # | Test | What it shows |
+| # | Test | Pass condition |
 |---|---|---|
-| T1 | Connect the disposable app to an unprotected disposable repo; edit in the editor | What a Base44 commit contains and how it is attributed (shared vs per-user) |
-| T2 | Protect `main` (required approval, admins enforced, no bypass); edit in the editor | Whether the push is rejected, and what Base44 does next: error, retry, silent divergence, or blocked editor |
-| T3 | Under T2, merge an approved PR that changes a backend function | Function reaches preview only; production unchanged until Publish |
-| T4 | Under T2, merge an approved PR that changes an entity schema | Whether production changes immediately, and what happens to existing records |
-| T5 | Under T2, merge an approved PR that changes an agent | Whether production changes immediately |
-| T6 | Turn off automatic inbound sync; merge a PR; open the editor | Whether opening the editor applies unapproved-for-production changes |
-| T7 | Create a conflicting edit on both sides | How conflicts appear; whether AI resolution changes anything without review |
-| T8 | Restore an earlier version in Base44 | What is pushed to `main` |
-| T9 | Disconnect, then attempt to reconnect | The documented reconnection limits in practice |
-| T10 | Check whether the Base44 GitHub App can push to any repository it was not installed on | Scope of the app's access |
+| I-T1 | Machine account opens a PR and tries to merge it | Merge blocked |
+| I-T2 | Director approves; machine account merges | Merge allowed |
+| I-T3 | Machine account pushes after approval | Approval no longer counts; merge blocked |
+| I-T4 | Machine account approves a director-authored PR | Does not satisfy the code-owner rule (checks plan support) |
+| I-T5 | Direct push to `main` by the machine account, then by the director | Both rejected |
 
-Each test records the date, who ran it, the configuration, and the observed result. A test that was not run is reported as not run.
+### n8n (non-production instance with synthetic workflows only)
+
+The non-production instance is a temporary local container with no production credentials and no public webhooks (D8).
+
+| # | Test |
+|---|---|
+| N-T1 | Export; file count matches |
+| N-T2 | Raw export contains `pinData` and `staticData` when present (settles the [U] above) |
+| N-T3 | Sanitizer removes synthetic `pinData` and `staticData`; validation passes |
+| N-T4 | A planted fake token fails the cycle |
+| N-T5 | Planted synthetic personal information in a prompt, an HTTP body, and a sticky note: pattern scan results recorded; manual review catches the rest |
+| N-T6 | Import the sanitized set: workflows load deactivated; credentials need re-linking |
+| N-T7 | A workflow that uses stored data behaves as documented after restore |
+| N-T8 | Restore while another workflow holds the same webhook path: activation fails visibly |
+
+### Base44 (disposable app and disposable private repository; resets between phases)
+
+**Phase E: editor baseline, no GitHub connection.** Settles how much the editor already bypasses Publish.
+
+| # | Test |
+|---|---|
+| E-T1 | Edit an entity schema; check production before Publish |
+| E-T2 | Edit an agent; check production before Publish |
+| E-T3 | Edit a backend function; check production before Publish |
+| E-T4 | Edit frontend code; check production before Publish |
+
+**Phase A: connected, `main` unprotected.** Characterizes inbound behavior. The repository holds synthetic data only.
+
+| # | Test |
+|---|---|
+| A-T1 | Editor edit: commit contents and author under shared and per-user modes |
+| A-T2 | Merge a function change: preview only until Publish |
+| A-T3 | Merge an entity change with synthetic records present: production effect and record impact |
+| A-T4 | Merge an agent change: production effect |
+| A-T5 | Merge a frontend change: production effect |
+| A-T6 | Inbound sync off, merge, then open the editor: when the change takes effect |
+| A-T7 | Conflict on both sides: what AI resolution changes |
+| A-T8 | Restore a version: what is pushed |
+| A-T9 | CLI deploy, then a sync: the CLI change is overwritten |
+| A-T10 | `base44 dev --remote` write: confirm it reaches live data |
+
+**Reset:** disconnect, uninstall the app from the repository, and delete the app and repository. Phase P starts with a fresh disposable app and repository.
+
+**Phase P: connected, `main` protected under AA1, no bypass.**
+
+| # | Test |
+|---|---|
+| P-T1 | Editor edit: is the push rejected, and how does Base44 report it (error, retry, silent divergence, blocked editor)? |
+| P-T2 | After P-T1: can the app still be edited and published; is the divergence visible; how does it recover (disconnect)? |
+| P-T3 | Can an approved PR still be applied inbound in this state? If not, B2 fails |
+| P-T4 | Disconnect during and after an AI-agent edit |
+
+**Teardown:** disconnect; uninstall the Base44 GitHub App from GitHub; confirm the app cannot reach repositories outside its selection; delete the disposable app and repository.
+
+### B5 snapshot (disposable app first)
+
+| # | Test |
+|---|---|
+| B5-T1 | Capture method is read-only and complete against the project structure |
+| B5-T2 | Snapshot passes sanitization; diff between two snapshots shows an editor change |
+| B5-T3 | Reconstruct a second disposable app from a snapshot; record what could not be rebuilt |
+
+### Acceptance criteria (director signs off)
+
+- **B2 remains possible** only if:
+  - P-T1 and P-T2 show rejected pushes are visible and recoverable;
+  - P-T3 shows approved changes can still be applied;
+  - E-T1 to E-T4 are understood and accepted.
+- **B5 is adopted** only if B5-T1 to B5-T3 pass.
+- **N1 starts** only after N-T1 to N-T6 pass.
 
 ## Decisions requiring the director's approval
 
-1. Accept, amend, or reject this ADR.
-2. Confirm the GitHub organization's plan supports branch protection on private repositories, or decide to upgrade.
-3. Create the private workflow-exports repository, and decide who has access (people and AI collaborators, read or write).
-4. Approve the sanitization rules and the validation checklist.
-5. Approve each workflow-export pull request (version control only).
-6. Approve any restore into production, and every workflow activation that follows it.
-7. Approve moving from manual to scheduled exports, and the credential the schedule uses.
-8. Create the disposable Base44 app and repository, and install the Base44 GitHub App on that repository only.
-9. Review the Base44 test results and choose among B2, B5, or no connection for each operational app.
-10. Any connection of an operational Base44 app, any sync setting change, and any branch-protection or bypass change.
-11. The design of the separate n8n disaster-recovery backup.
+| # | Decision |
+|---|---|
+| D1 | Repository ownership: personal account, or move to an organization (AA3) |
+| D2 | GitHub plan: Pro for a personal account, or Team for an organization, for private-repository protection. Optional paid secret scanning |
+| D3 | Who and what may edit and publish in Base44, including AI tools and their credentials |
+| D4 | Who and what may edit and publish or activate in n8n, including API keys held by AI tools and what each key may do |
+| D5 | Approval identity architecture (AA1, AA2, or AA4), the machine account, `CODEOWNERS`, and protection settings, after I-T1 to I-T5 |
+| D6 | B5 snapshot method, scope, frequency, and retention |
+| D7 | Moving from manual to scheduled n8n exports, and the credential used |
+| D8 | Creating the disposable repositories, the disposable Base44 apps, the non-production n8n instance, and every GitHub App install, each limited to selected repositories |
+| D9 | Any restore or import into production, and the activation that follows |
+| D10 | Design, custody, and a tested restore of the separate n8n disaster-recovery backup |
+| D11 | Credential and key custody: password manager, rotation schedule, recovery factors for the machine account |
+| D12 | Private-repository retention, and incident response if a private repository is exposed |
+| D13 | Acceptance criteria and sign-off for the disposable experiments |
+| D14 | The release gate per Base44 resource type (frontend, functions, entities, agents) after phase E |
+| D15 | Any direct deployment or CLI action outside GitHub on an operational app |
+| D16 | Whether to connect any operational Base44 app (B2), separately per app |
+| D17 | How to resolve the current merge deadlock on this public repository (immediate; see Current environment) |
 
-## Assumptions to verify
-
-- Exported workflow JSON includes `pinData` and `staticData` fields. Expected from how n8n stores workflows, not stated in the CLI documentation; confirmed in dry-run step 2.
-- Base44 behavior when its push to a protected `main` is rejected (T2). Not documented.
-- Whether entity and agent changes made in the Base44 editor, before any GitHub connection, already reach production without Publish. This affects how much GitHub would change the current approval model.
-- The GitHub organization's current plan.
+**Separate open decision, not covered here:** the scheduling and invoice exception under [ADR-004](004-human-approval-gates-for-agents.md), raised by ADR-008 (in review in pull request #7). ADR-009 does not resolve it or treat it as normal practice.
 
 ## Consequences
 
-- Workflow definitions gain history and review with no new path into production.
-- The operational Base44 apps stay unconnected for now, so pull requests cannot change them. Changes continue through the Base44 editor and Publish under the director's control.
-- AI collaborators can review workflow exports through pull requests, but cannot change production through GitHub.
-- Disaster recovery for the workflow engine remains an open gap until its separate backup is designed and a restore is tested.
-- Maps to NIST AI RMF *Govern* (accountability for changes, access control) and *Manage* (change management, recovery); see the [governance mapping](../governance/nist-ai-rmf-mapping.md).
+- Workflow definitions and app source gain history and review **with no new path into production**.
+- Path (a) becomes enforceable only after identity separation. Paths (b) through (e) remain **director-operated, not technically enforced**, until D3 and D4 change credentials and roles. Snapshots add detection of unreviewed changes, not prevention.
+- Operational Base44 apps stay unconnected. Changes continue through the Base44 editor and Publish, operated by the director, and are not yet independently enforced.
+- Disaster recovery for the workflow engine remains an open gap (D10).
+- Maps to NIST AI RMF *Govern* (accountability, access control) and *Manage* (change management, recovery); see the [governance mapping](../governance/nist-ai-rmf-mapping.md). Follows the evidence and status rules of the [AI Engineering Methodology](../docs/AI-ENGINEERING-METHODOLOGY.md).
