@@ -1,6 +1,6 @@
 # ADR-006: Website avatar intake feeds the same pipeline as phone intake
 
-**Status:** Accepted (October 2026). Access controls in place (vendor CRM writes disabled, domain-restricted widget key, token-authenticated webhook); payload adapter in progress.
+**Status:** Superseded for the public website by [ADR-008](008-website-chat-with-in-conversation-tools.md) (October 21, 2026). The avatar now runs only in the member portal. The access controls below were reported in place by the director on October 16, 2026, for the avatar as then deployed on the public site; they have not been re-verified for the member portal. The payload adapter was not built.
 
 ## Context
 

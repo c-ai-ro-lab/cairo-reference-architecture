@@ -1,6 +1,6 @@
 # ADR-007: Every agent has its own identity, and every step is observable
 
-**Status:** Accepted (October 2026). Dashboard live; individual chat identities in progress.
+**Status:** Accepted (October 2026). Dashboard live (director-reported); individual chat identities in progress. Not yet verified.
 
 ## Context
 

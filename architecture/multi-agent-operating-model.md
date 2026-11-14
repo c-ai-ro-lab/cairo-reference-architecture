@@ -12,7 +12,7 @@ Each agent has one job, one manager, and a defined limit on what it may do outsi
 |---|---|---|---|
 | **Orchestrator** | Researches leads and solution options, routes work to the right agent, checks output before it reaches the director, produces a daily briefing | Director | No |
 | **Marketing & Reception Manager** | Owns the client funnel and all booking coordination; reviews content and proposals for fit, tone, and funnel opportunities | Director | Confirms bookings only |
-| **Reception (sub-agent)** | First contact on phone and website chat; qualifies new inquiries ([reference workflow](../workflows/client-intake-agent/)) | Marketing & Reception Manager | Writes inbound leads to the CRM |
+| **Reception (sub-agent)** | First contact on website chat (phone planned); qualifies new inquiries ([reference workflow](../workflows/client-intake-agent/)) | Marketing & Reception Manager | Writes inbound leads to the CRM; on the website, places a 24-hour hold and sends the fixed-price session invoice ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)) |
 | **Proposal & SOW** | Drafts proposals and statements of work | Orchestrator | Only after approval |
 | **GRC Assessment** | Runs NIST AI RMF / FAIR assessments on proposed and delivered automations | Director | No |
 | **Delivery Tracker** | Tracks milestones, builds realistic timelines from the director's real availability, flags slippage | Orchestrator | No |
@@ -75,7 +75,7 @@ Proposals are assembled by several agents in sequence, and the director steps in
 
 Every booking request, whether from website chat, a phone call, an existing client, or outbound prospecting, goes to one coordinator: the Marketing & Reception Manager.
 
-1. The Reception sub-agent collects the request and passes it on. It does not book directly.
+1. The Reception sub-agent collects the request and passes it on. **Exception:** on the public website it can check availability and place a 24-hour hold for a strategy session, which is not confirmed until paid ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)). Whether this becomes a standing approval under [ADR-004](../decisions/004-human-approval-gates-for-agents.md) is an open decision.
 2. The coordinator gets available slots from the agent that holds the availability model. Rules differ by calendar type: a class or a client meeting is fixed, while some work blocks are flexible.
 3. Conflicts get a proposed resolution, and anything ambiguous goes to the director before it is finalized.
 4. The coordinator confirms with the client and is the only agent that notifies the director of a new booking.
@@ -86,8 +86,9 @@ A single coordinator means no double-bookings from two agents acting on stale av
 
 | Channel | Who uses it | Purpose |
 |---|---|---|
-| Phone voice agent | Prospects and clients | Inbound intake and appointment help |
-| Website avatar chat | Prospects | Inbound intake from the public site ([ADR-006](../decisions/006-website-intake-through-one-pipeline.md)) |
+| Website chat (voice and text) | Prospects | Inbound intake and session booking from the public site ([ADR-008](../decisions/008-website-chat-with-in-conversation-tools.md)) |
+| Phone voice agent | Prospects and clients | Planned: inbound intake and appointment help |
+| Member-portal avatar | Members | Member support in the member portal |
 | Team chat | Agents and director | Agent-to-agent handoffs, approval cards, status threads |
 | Direct voice/chat | Director | Reach any agent directly to interject or redirect |
 | Live operations dashboard | Director | Watch agents work in real time ([ADR-007](../decisions/007-agent-identity-and-observability.md)) |
@@ -95,7 +96,7 @@ A single coordinator means no double-bookings from two agents acting on stale av
 ## Design choices
 
 - **The CRM is the single system of record for leads and deals.** Agents read and write a defined set of custom properties under one naming prefix, so every AI-written field is identifiable.
-- **Every channel feeds the same intake pipeline.** A lead from the website gets the same validation, scoring, and review as one from the phone.
+- **Every channel feeds the same intake pipeline.** A lead from any channel gets the same validation, scoring, and review.
 - **Each agent has its own identity in team chat,** and one dedicated bot handles approval cards, so every message and approval is attributable.
 - **Every agent step emits an event** to a live dashboard: an org chart, in-flight runs, an activity feed, and a "waiting on you" strip.
 - **Workflows run on one self-managed engine.** A low-code SaaS platform is used for prototyping only and is never in the production path.
